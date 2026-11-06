@@ -1,0 +1,219 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserRecord() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasUserDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "zekariaszeleke2018@gmail.com" ||
+        (hasUserDoc() && getUserRecord().role == "admin" && getUserRecord().status == "active")
+      );
+    }
+
+    function isRegistrar() {
+      return isAdmin() || (
+        hasUserDoc() && getUserRecord().role == "registrar" && getUserRecord().status == "active"
+      );
+    }
+
+    function isTeacherOrHead(deptId) {
+      return isAdmin() || (
+        hasUserDoc() &&
+        (getUserRecord().role == "teacher" || getUserRecord().role == "department_head") &&
+        getUserRecord().departmentId == deptId &&
+        getUserRecord().status == "active"
+      );
+    }
+
+    function isMemberOfDept(deptId) {
+      return isAdmin() || (
+        hasUserDoc() &&
+        getUserRecord().departmentId == deptId &&
+        getUserRecord().status == "active"
+      );
+    }
+
+    // --- USERS COLLECTION ---
+    match /users/{userId} {
+      // User can read their own profile; Admin and Registrar can view all users; Dept Heads can view users in their department
+      allow get: if isOwner(userId) || isRegistrar() || (
+        hasUserDoc() && getUserRecord().role == "department_head" && getUserRecord().status == "active" &&
+        getUserRecord().departmentId == resource.data.departmentId
+      );
+      allow list: if isRegistrar() || (
+        hasUserDoc() && getUserRecord().role == "department_head" && getUserRecord().status == "active"
+      );
+      // Only Admin or Registrar can create/modify users; Admin can modify all, Registrar can register students
+      allow create: if isAdmin() || isRegistrar() || isOwner(userId);
+      allow update: if isAdmin() || isRegistrar() || (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status', 'departmentId']));
+      allow delete: if isAdmin();
+    }
+
+    // --- DEPARTMENTS COLLECTION ---
+    match /departments/{deptId} {
+      // Public can read departments (catalog on website)
+      allow read: if true;
+      // Only Admin can create, update, or deactivate departments
+      allow create, update, delete: if isAdmin();
+    }
+
+    // --- ACADEMIC TERMS ---
+    match /academic_terms/{termId} {
+      allow read: if true;
+      allow write: if isAdmin() || isRegistrar();
+    }
+
+    // --- LEARNING MATERIALS ---
+    match /materials/{materialId} {
+      // Public cannot view materials. Members of the department can read.
+      allow read: if isSignedIn() && (
+        isAdmin() || (hasUserDoc() && getUserRecord().departmentId == resource.data.departmentId && getUserRecord().status == "active")
+      );
+      // Teachers and Dept Heads in that dept, or Admin can create/update/delete
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          hasUserDoc() &&
+          (getUserRecord().role == "teacher" || getUserRecord().role == "department_head") &&
+          getUserRecord().departmentId == request.resource.data.departmentId &&
+          getUserRecord().status == "active" &&
+          request.resource.data.uploadedByUid == request.auth.uid
+        )
+      );
+      allow update, delete: if isSignedIn() && (
+        isAdmin() || (
+          hasUserDoc() &&
+          resource.data.uploadedByUid == request.auth.uid &&
+          getUserRecord().status == "active"
+        )
+      );
+    }
+
+    // --- ASSIGNMENTS ---
+    match /assignments/{assignmentId} {
+      // Members of the department can read assignments
+      allow read: if isSignedIn() && (
+        isAdmin() || (hasUserDoc() && getUserRecord().departmentId == resource.data.departmentId && getUserRecord().status == "active")
+      );
+      // Only teachers and dept heads can create/update/delete assignments
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          hasUserDoc() &&
+          (getUserRecord().role == "teacher" || getUserRecord().role == "department_head") &&
+          getUserRecord().departmentId == request.resource.data.departmentId &&
+          getUserRecord().status == "active" &&
+          request.resource.data.createdByUid == request.auth.uid
+        )
+      );
+      allow update, delete: if isSignedIn() && (
+        isAdmin() || (
+          hasUserDoc() &&
+          resource.data.createdByUid == request.auth.uid &&
+          getUserRecord().status == "active"
+        )
+      );
+    }
+
+    // --- SUBMISSIONS ---
+    match /submissions/{submissionId} {
+      // A student can only get/read their own submission; Teachers & Dept heads of that department can view all department submissions
+      allow get: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        isTeacherOrHead(resource.data.departmentId) ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        isTeacherOrHead(resource.data.departmentId) ||
+        isAdmin()
+      );
+      // Students can submit for themselves in their assigned department
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          hasUserDoc() &&
+          getUserRecord().role == "student" &&
+          getUserRecord().departmentId == request.resource.data.departmentId &&
+          getUserRecord().status == "active" &&
+          request.resource.data.studentUid == request.auth.uid
+        )
+      );
+      // Teachers can grade (update score/feedback), student can update their text before grading
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        isTeacherOrHead(resource.data.departmentId) ||
+        (resource.data.studentUid == request.auth.uid && !resource.data.keys().hasAll(['score']))
+      );
+      allow delete: if isAdmin() || (resource.data.studentUid == request.auth.uid && !resource.data.keys().hasAll(['score']));
+    }
+
+    // --- ANNOUNCEMENTS ---
+    match /announcements/{announcementId} {
+      // College-wide announcements are public or visible to signed-in users; department announcements are restricted to department members
+      allow read: if resource.data.scope == "college" || (
+        isSignedIn() && (isAdmin() || (hasUserDoc() && getUserRecord().departmentId == resource.data.departmentId))
+      );
+      // Admin can post college-wide; Teachers and Dept Heads can post for their department
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          hasUserDoc() &&
+          (getUserRecord().role == "teacher" || getUserRecord().role == "department_head") &&
+          getUserRecord().departmentId == request.resource.data.departmentId &&
+          getUserRecord().status == "active"
+        )
+      );
+      allow update, delete: if isSignedIn() && (
+        isAdmin() || (resource.data.authorUid == request.auth.uid)
+      );
+    }
+
+    // --- NEWS, EVENTS, GALLERY (PUBLIC) ---
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /gallery/{galleryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- CONTACT INQUIRIES & ADMISSIONS ---
+    match /inquiries/{inquiryId} {
+      // Anyone can submit an inquiry
+      allow create: if true;
+      // Only Admin / Registrar can read and manage inquiries
+      allow read, update, delete: if isAdmin() || isRegistrar();
+    }
+
+    match /admissions_applications/{applicationId} {
+      // Anyone can apply
+      allow create: if true;
+      // Registrar and Admin can view and review applications
+      allow read, update, delete: if isAdmin() || isRegistrar();
+    }
+  }
+}

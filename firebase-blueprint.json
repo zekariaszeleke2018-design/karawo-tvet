@@ -1,0 +1,250 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access control and department assignment",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin", "registrar", "department_head", "teacher", "student"] },
+        "departmentId": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "idNumber": { "type": "string", "maxLength": 50 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "fullName", "role", "status"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "TVET Department and programs catalog",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "code": { "type": "string", "maxLength": 20 },
+        "description": { "type": "string", "maxLength": 500 },
+        "headOfDepartmentId": { "type": "string" },
+        "headOfDepartmentName": { "type": "string" },
+        "programs": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "code", "active"]
+    },
+    "AcademicTerm": {
+      "title": "AcademicTerm",
+      "description": "Academic year and semester records",
+      "type": "object",
+      "properties": {
+        "academicYear": { "type": "string", "maxLength": 50 },
+        "semester": { "type": "string", "maxLength": 30 },
+        "isCurrent": { "type": "boolean" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" }
+      },
+      "required": ["academicYear", "semester", "isCurrent"]
+    },
+    "Material": {
+      "title": "Material",
+      "description": "Department learning material or lecture notes",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 500 },
+        "departmentId": { "type": "string" },
+        "courseName": { "type": "string", "maxLength": 100 },
+        "fileType": { "type": "string", "maxLength": 20 },
+        "fileUrl": { "type": "string" },
+        "uploadedByUid": { "type": "string" },
+        "uploadedByName": { "type": "string", "maxLength": 100 },
+        "uploaderRole": { "type": "string" },
+        "targetLevel": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "departmentId", "courseName", "uploadedByUid"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "Course assignment or homework for students",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "departmentId": { "type": "string" },
+        "courseName": { "type": "string", "maxLength": 100 },
+        "dueDate": { "type": "string" },
+        "maxScore": { "type": "number" },
+        "createdByUid": { "type": "string" },
+        "createdByName": { "type": "string", "maxLength": 100 },
+        "targetLevel": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "departmentId", "courseName", "dueDate", "createdByUid"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Student homework submission with grading",
+      "type": "object",
+      "properties": {
+        "assignmentId": { "type": "string" },
+        "studentUid": { "type": "string" },
+        "studentName": { "type": "string", "maxLength": 100 },
+        "studentIdNumber": { "type": "string", "maxLength": 50 },
+        "departmentId": { "type": "string" },
+        "submissionText": { "type": "string", "maxLength": 2000 },
+        "fileUrl": { "type": "string" },
+        "submittedAt": { "type": "string" },
+        "score": { "type": "number" },
+        "feedback": { "type": "string", "maxLength": 500 },
+        "gradedAt": { "type": "string" },
+        "gradedByUid": { "type": "string" }
+      },
+      "required": ["assignmentId", "studentUid", "departmentId", "submissionText"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "College-wide or department announcements",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "content": { "type": "string", "maxLength": 2000 },
+        "scope": { "type": "string", "enum": ["college", "department"] },
+        "departmentId": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "authorRole": { "type": "string" },
+        "priority": { "type": "string", "enum": ["normal", "urgent"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "content", "scope", "authorUid"]
+    },
+    "NewsItem": {
+      "title": "NewsItem",
+      "description": "College public news stories",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "summary": { "type": "string", "maxLength": 300 },
+        "content": { "type": "string", "maxLength": 5000 },
+        "category": { "type": "string", "maxLength": 50 },
+        "imageUrl": { "type": "string" },
+        "publishedAt": { "type": "string" },
+        "author": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["title", "summary", "content"]
+    },
+    "EventItem": {
+      "title": "EventItem",
+      "description": "College events and academic calendar notices",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "date": { "type": "string" },
+        "time": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "category": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["title", "date", "location"]
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "Campus facilities and technical workshop photo showcase",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 50 },
+        "imageUrl": { "type": "string" },
+        "description": { "type": "string", "maxLength": 300 },
+        "date": { "type": "string" }
+      },
+      "required": ["title", "imageUrl", "category"]
+    },
+    "ContactInquiry": {
+      "title": "ContactInquiry",
+      "description": "Public contact form submission",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string", "maxLength": 30 },
+        "subject": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 2000 },
+        "status": { "type": "string", "enum": ["new", "read", "resolved"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "subject", "message"]
+    },
+    "AdmissionApplication": {
+      "title": "AdmissionApplication",
+      "description": "Prospective student TVET enrollment application",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string", "maxLength": 30 },
+        "departmentId": { "type": "string" },
+        "departmentName": { "type": "string" },
+        "preferredProgram": { "type": "string", "maxLength": 100 },
+        "previousEducation": { "type": "string", "maxLength": 150 },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "admitted", "declined"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["fullName", "email", "phone", "departmentId", "preferredProgram"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User profiles with roles and department links"
+    },
+    "/departments/{departmentId}": {
+      "schema": { "$ref": "Department" },
+      "description": "Dynamic TVET departments catalog"
+    },
+    "/academic_terms/{termId}": {
+      "schema": { "$ref": "AcademicTerm" },
+      "description": "Academic years and semesters"
+    },
+    "/materials/{materialId}": {
+      "schema": { "$ref": "Material" },
+      "description": "Uploaded TVET learning materials and modules"
+    },
+    "/assignments/{assignmentId}": {
+      "schema": { "$ref": "Assignment" },
+      "description": "Department homework and coursework assignments"
+    },
+    "/submissions/{submissionId}": {
+      "schema": { "$ref": "Submission" },
+      "description": "Student assignment submissions and grades"
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "Announcement" },
+      "description": "College and department level announcements"
+    },
+    "/news/{newsId}": {
+      "schema": { "$ref": "NewsItem" },
+      "description": "Public news articles and updates"
+    },
+    "/events/{eventId}": {
+      "schema": { "$ref": "EventItem" },
+      "description": "Public events and calendar items"
+    },
+    "/gallery/{galleryId}": {
+      "schema": { "$ref": "GalleryItem" },
+      "description": "Showcase of training workshops and campus life"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "ContactInquiry" },
+      "description": "Inquiries submitted via public contact form"
+    },
+    "/admissions_applications/{applicationId}": {
+      "schema": { "$ref": "AdmissionApplication" },
+      "description": "Student TVET application submissions"
+    }
+  }
+}

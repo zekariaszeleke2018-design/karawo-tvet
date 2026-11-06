@@ -1,0 +1,6 @@
+{
+  "name": "Karawo TVET College Portal",
+  "description": "Karawo TVET College official web portal and academic management system for administrators, registrars, department heads, teachers, and students in Ethiopia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
